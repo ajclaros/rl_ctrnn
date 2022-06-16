@@ -59,7 +59,8 @@ class CTRNN {
         CTRNN(int newsize = 0);
         // The destructor
         ~CTRNN();
-        queue<double> runningaverage = queue<double>(4000, 0);
+
+                queue<double> runningaverage = queue<double>(4000, 0);
         void recoverParameters();
         // Accessors
         int CircuitSize(void) {return size;};
