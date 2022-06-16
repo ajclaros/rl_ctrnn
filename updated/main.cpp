@@ -1,4 +1,3 @@
-
 #include <iostream>
 //#include "queue.h"
 #include <eigen3/Eigen/Dense>
@@ -13,8 +12,9 @@ int main(int argc, const char* argv[]){
     //srand(time(NULL));
     CTRNN network(2);
     network.randomizeParameters();
-    cout<<network.taus<<endl;
-    cout<<network.invTaus<<endl;
+    network.recoverParameters();
+    cout<<network.weights<<endl;
+    cout<<network.params<<endl;
 
     //cout<<network.taus<<endl<<endl;
     //a.setSize(4);
