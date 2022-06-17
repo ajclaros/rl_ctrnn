@@ -53,6 +53,7 @@ class CTRNN {
         Eigen::MatrixXd biascenters;
         Eigen::MatrixXd flux ;
         Eigen::MatrixXd period,periodcount;
+        Eigen::MatrixXd params;
         double WR, BR, TR, TA;
         double amp,meanPeriod,stdPeriod, convergence, initamp;
         int fluxPeriodMin, fluxPeriodMax;
@@ -63,32 +64,31 @@ class CTRNN {
         double ampGain;
         void recoverParameters();
         int getCircuitSize(void) {return size;};
+        //double getNeuronOutput(int i) {return outputs[i];};
+        //double getNeuronBias(int i) {return biases[i];};
+        //void setNeuronBias(int i, double value) {biases[i] = value; biascenters[i] = value;};
+        //double getNeuronTimeConstant(int i) {return taus[i];};
+        //void setNeuronTimeConstant(int i, double value) {taus[i] = value; invTaus[i] = 1/value;};
+        //void setWeight(int from, int to, double value) {weights[from][to] = value; weightcenters[from][to] = value;};
+        //double getWeight(int from, int to) {return weights[from][to];}; //connection from N_i to N_j
+        void setLearnRate(double value){learnrate=value;};
+        //void Flux(RandomState &rs);
+        void Learn(double performance);
+        void EulerStep(double stepsize);
         //double getNeuronState(int i) {return states[i];};
         //double &getNeuronStateReference(int i) {return states[i];};
         //void setNeuronState(int i, double value){states[i] = value;outputs[i] = sigmoid(gains[i]*(states[i] + biases[i]));};
-        //double getNeuronOutput(int i) {return outputs[i];};
         //double &getNeuronOutputReference(int i) {return outputs[i];};
-        //void setNeuronOutput(int i, double value) {outputs[i] = value; states[i] = InverseSigmoid(value)/gains[i] - biases[i];};
-        //double getNeuronBias(int i) {return biases[i];};
-        //void setNeuronBias(int i, double value) {biases[i] = value; biascenters[i] = value;};
         //double getNeuronGain(int i) {return gains[i];};
         //void setNeuronGain(int i, double value) {gains[i] = value;};
-        //double getNeuronTimeConstant(int i) {return taus[i];};
-        //void setNeuronTimeConstant(int i, double value) {taus[i] = value;Rtaus[i] = 1/value;};
         //double getNeuronExternalInput(int i) {return externalinputs[i];};
         //double &getNeuronExternalInputReference(int i) {return externalinputs[i];};
         //void setNeuronExternalInput(int i, double value) {externalinputs[i] = value;};
-        //double getConnectionWeight(int from, int to) {return weights[from][to];};
-        //void setConnectionWeight(int from, int to, double value) {weights[from][to] = value; weightcenters[from][to] = value;};
-        //void setLearnRate(double value){learnrate=value;};
         //void setPeriod(double meanvalue, double stdvalue){meanPeriod=meanvalue;stdPeriod=stdvalue;};
         //void RandomizeCircuitState(double lb, double ub);
         //void RandomizeCircuitState(double lb, double ub, RandomState &rs);
         //void RandomizeCircuitOutput(double lb, double ub);
         //void RandomizeCircuitOutput(double lb, double ub, RandomState &rs);
-        //void Flux(RandomState &rs);
-        //void Learn(double performance);
-        //void EulerStep(double stepsize);
         // Matrix<double, Eigen::Dynamic TempStates,TempOutputs,k1,k2,k3,k4;
         // // NEW FOR RL
         int maxOfAxis(int axis); //0=i, 1=j

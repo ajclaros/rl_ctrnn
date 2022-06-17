@@ -1,4 +1,3 @@
-
 #include <iostream>
 //#include "queue.h"
 #include <eigen3/Eigen/Dense>
@@ -33,8 +32,9 @@ int main(int argc, const char* argv[]){
     cout<<endl;
     cout<<"Max of rows:"<<endl;
     cout<<maxOfAxis(1, network.taus.transpose())<<endl;
-
-
+    network.recoverParameters();
+    cout<<network.weights<<endl;
+    cout<<network.params<<endl;
     //cout<<network.taus<<endl<<endl;
     //a.setSize(4);
     //cout<<a.size<<endl<<endl;
