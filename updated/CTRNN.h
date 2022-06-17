@@ -2,7 +2,6 @@
 #include <iostream>
 #include "queue.h"
 #include <cmath>
-using Eigen::MatrixXd;
 #pragma once
 const double Pi = 3.1415926;
 // The sigmoid function
@@ -37,11 +36,11 @@ class CTRNN {
         void setSize(int size);
         void reset();
         void randomizeParameters();
-        void setVoltages(MatrixXd voltages);
-        void setTaus(MatrixXd taus);
-        void setInputs(MatrixXd inputs);
-        void setWeightCenters(MatrixXd weightCenters);
-        void initializeState(MatrixXd v);
+        void setVoltages(Eigen::MatrixXd voltages);
+        void setTaus(Eigen::MatrixXd taus);
+        void setInputs(Eigen::MatrixXd inputs);
+        void setWeightCenters(Eigen::MatrixXd weightCenters);
+        void initializeState(Eigen::MatrixXd v);
         // The destructor
         queue<double> runningaverage = queue<double>(4000, 0);
         // // Accessors
@@ -92,4 +91,5 @@ class CTRNN {
         //void EulerStep(double stepsize);
         // Matrix<double, Eigen::Dynamic TempStates,TempOutputs,k1,k2,k3,k4;
         // // NEW FOR RL
+        int maxOfAxis(int axis); //0=i, 1=j
 };
