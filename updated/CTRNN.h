@@ -91,5 +91,4 @@ class CTRNN {
         //void RandomizeCircuitOutput(double lb, double ub, RandomState &rs);
         // Matrix<double, Eigen::Dynamic TempStates,TempOutputs,k1,k2,k3,k4;
         // // NEW FOR RL
-        int maxOfAxis(int axis); //0=i, 1=j
 };
