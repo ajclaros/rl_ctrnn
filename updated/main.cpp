@@ -26,8 +26,9 @@ int main(int argc, const char* argv[]){
     //srand(20);
     srand(time(NULL));
     CTRNN network(3);
-    Eigen::MatrixXd genome = Eigen::MatrixXd::Random(3*3+6 ,1);
-    network.setGenome(genome);
+    network.randomizeParameters();
+    //Eigen::MatrixXd genome = Eigen::MatrixXd::Random(3*3+6 ,1);
+    //network.setGenome(genome);
     network.print();
 
     //a.setSize(4);

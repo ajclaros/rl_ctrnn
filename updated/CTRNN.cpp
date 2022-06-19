@@ -124,6 +124,6 @@ void CTRNN::print(){
     std::cout<<"Biases:\n"<<biases<<std::endl;
     std::cout<<"BiasCenters:\n"<<biascenters<<std::endl;
     std::cout<<"Taus:\n"<<taus<<std::endl;
-    std::cout<<"invTaus:\n"<<taus<<std::endl;
+    std::cout<<"invTaus:\n"<<invTaus<<std::endl;
 
 }
