@@ -5,28 +5,28 @@
 #pragma once
 const double Pi = 3.1415926;
 // The sigmoid function
-#ifdef FAST_SIGMOID
-const int SigTabSize = 400;
-const double SigTabRange = 15.0;
-double fastsigmoid(double x);
-#endif
-inline double sigma(double x)
-{
-  return 1/(1 + exp(-x));
-}
-inline double sigmoid(double x)
-{
-#ifndef FAST_SIGMOID
-  return sigma(x);
-#else
-  return fastsigmoid(x);
-#endif
-}
+//#ifdef FAST_SIGMOID
+//const int SigTabSize = 400;
+//const double SigTabRange = 15.0;
+//double fastsigmoid(double x);
+//#endif
+//inline double sigma(double x)
+//{
+//  return 1/(1 + exp(-x));
+//}
+//inline double sigmoid(double x)
+//{
+//#ifndef FAST_SIGMOID
+//  return sigma(x);
+//#else
+//  return fastsigmoid(x);
+//#endif
+//}
 // The inverse sigmoid function
-inline double InverseSigmoid(double y)
-{
-  return log(y/(1-y));
-}
+//inline double InverseSigmoid(double y)
+//{
+//  return log(y/(1-y));
+//j}
 // The CTRNN class declaration
 class CTRNN {
     public:

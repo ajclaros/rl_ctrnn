@@ -2,25 +2,27 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <cmath>
-
+double sigmoid(double x){
+  return 1/(1 + exp(-x));
+}
 
 CTRNN::CTRNN(int size, double WR, double BR, double TR, double TA)
 {
     this->size = size;
     weights.resize(size, size);
-    outputs.resize(size, 1);
-    biases.resize(size, 1);
-    taus.resize(size, 1);
-    inputs.resize(size, 1);
+    outputs.resize(1, size);
+    biases.resize(1, size);
+    taus.resize(1, size);
+    inputs.resize(1, size);
     weightcenters.resize(size, size);
-    params.resize(size*size+2*size, 1);
-    params = Eigen::MatrixXd::Zero(size*size+2*size,1);
+    params.resize(1, size*size+2*size);
+    params = Eigen::MatrixXd::Zero(1, size*size+2*size);
     weights = Eigen::MatrixXd::Zero(size, size);
-    outputs = Eigen::MatrixXd::Zero(size, 1);
-    biases = Eigen::MatrixXd::Zero(size, 1);
-    taus= Eigen::MatrixXd::Zero(size, 1);
-    invTaus= Eigen::MatrixXd::Zero(size, 1);
-    inputs = Eigen::MatrixXd::Zero(size, 1);
+    outputs = Eigen::MatrixXd::Zero(1, size);
+    biases = Eigen::MatrixXd::Zero(1, size);
+    taus= Eigen::MatrixXd::Zero(1, size);
+    invTaus= Eigen::MatrixXd::Zero(1, size);
+    inputs = Eigen::MatrixXd::Zero(1, size);
     weightcenters = Eigen::MatrixXd::Zero(size, size);
     this->WR = WR;
     this->BR= WR;
@@ -30,28 +32,28 @@ CTRNN::CTRNN(int size, double WR, double BR, double TR, double TA)
 void CTRNN::setSize(int size){this->size = size;
 
     weights.resize(size, size);
-    outputs.resize(size, 1);
-    biases.resize(size, 1);
-    biascenters.resize(size, 1);
-    taus.resize(size, 1);
-    params.resize(size*size+2*size, 1);
-    inputs.resize(size, 1);
+    outputs.resize(1, size);
+    biases.resize(1, size);
+    biascenters.resize(1, size);
+    taus.resize(1, size);
+    params.resize(1, size*size+2*size);
+    inputs.resize(1, size);
     weightcenters.resize(size, size);
     weights = Eigen::MatrixXd::Zero(size, size);
-    outputs = Eigen::MatrixXd::Zero(size, 1);
-    biases = Eigen::MatrixXd::Zero(size, 1);
-    biascenters = Eigen::MatrixXd::Zero(size, 1);
-    taus= Eigen::MatrixXd::Zero(size, 1);
-    inputs = Eigen::MatrixXd::Zero(size, 1);
+    outputs = Eigen::MatrixXd::Zero(1, size);
+    biases = Eigen::MatrixXd::Zero(1, size);
+    biascenters = Eigen::MatrixXd::Zero(1, size);
+    taus= Eigen::MatrixXd::Zero(1, size);
+    inputs = Eigen::MatrixXd::Zero(1, size);
     weightcenters = Eigen::MatrixXd::Zero(size, size);
 }
 void CTRNN::reset(){
     weights = Eigen::MatrixXd::Zero(size, size);
-    outputs = Eigen::MatrixXd::Zero(size, 1);
-    biases = Eigen::MatrixXd::Zero(size, 1);
-    biascenters = Eigen::MatrixXd::Zero(size, 1);
-    taus= Eigen::MatrixXd::Zero(size, 1);
-    inputs = Eigen::MatrixXd::Zero(size, 1);
+    outputs = Eigen::MatrixXd::Zero(1, size);
+    biases = Eigen::MatrixXd::Zero(1, size);
+    biascenters = Eigen::MatrixXd::Zero(1, size);
+    taus= Eigen::MatrixXd::Zero(1, size);
+    inputs = Eigen::MatrixXd::Zero(1, size);
     weightcenters = Eigen::MatrixXd::Zero(size, size);
 
 }
@@ -59,9 +61,9 @@ void CTRNN::reset(){
 void CTRNN::randomizeParameters(){
     weights = Eigen::MatrixXd::Random(size, size)*WR;
     weightcenters = weights;
-    biases= Eigen::MatrixXd::Random(size, 1)*WR;
+    biases= Eigen::MatrixXd::Random(1, size)*WR;
     biascenters= biases;
-    taus=Eigen::MatrixXd::Random(size, 1)*TR+ Eigen::MatrixXd::Ones(size,1)*TA;
+    taus=Eigen::MatrixXd::Random(1, size)*TR+ Eigen::MatrixXd::Ones(1, size)*TA;
     invTaus = taus.cwiseInverse();
 
 }
@@ -86,36 +88,44 @@ void CTRNN::initializeState(Eigen::MatrixXd v){
     voltages = v;
     invTaus = taus.cwiseInverse();
     for(int i=0; i<size;i++){
-       outputs(i, 0)  = sigmoid(voltages(i)+biases(0));
-
-
+       outputs(0, i)  = sigmoid(voltages(0, i)+biases(0, i));
     }
 }
 void CTRNN::recoverParameters(){
     for(int i=0; i<size; i++){
         for(int j=0; j<size; j++){
-            params(i*size+j,0)  = weightcenters(i, j)/WR; //return weights to original encoding [-1, 1]
+            params(0, i*size+j)  = weightcenters(i, j)/WR; //return weights to original encoding [-1, 1]
         }
-       params(size*size+i,0) = biascenters(i,0)/BR;
-       params(size * size + size+i,0) = (taus(i,0)-TA)/TR;
+       params(0, size*size+i) = biascenters(0, i)/BR;
+       params(0, size * size + size+i) = (taus(0, i)-TA)/TR;
     }
 }
 
 void CTRNN::setGenome(Eigen::MatrixXd genome) {
     if (genome.size()!=this->size*this->size+2*this->size){
         throw "Matrix is of wrong size!";
-
-
 }
     for(int i=0;i<this->size;i++){
         for(int j=0; j<this->size; j++){
-            weights(i, j) = genome(i*size+j, 0)*WR;}
-        biases(i, 0) = genome(size*size+i, 0)*BR;
-        taus(i, 0) = genome(size*size+size+i,0)*TR+TA;
+            weights(i, j) = genome(0, i*size+j)*WR;}
+        biases(0, i) = genome(0, size*size+i)*BR;
+        taus(0, i) = genome(0, size*size+size+i)*TR+TA;
 }
     weightcenters = weights;
     biascenters = biases;
     invTaus = taus.cwiseInverse();
+}
+
+void CTRNN::EulerStep(double stepsize){
+    Eigen::MatrixXd netInput(1, size);
+    netInput = Eigen::MatrixXd::Zero(1, size);
+    for(int i=0; i<size; i++){
+       netInput(0,i) = inputs(0, i) + weightcenters.transpose().row(i).cwiseProduct(outputs).sum();
+}
+    voltages += Eigen::MatrixXd::Constant(1, size, stepsize).cwiseProduct(invTaus.cwiseProduct((-voltages+ netInput)));
+    for(int i =0; i<size; i++){
+        outputs(i) = sigmoid(voltages(0,i)+biases(0, i));
+}
 }
 
 void CTRNN::print(){

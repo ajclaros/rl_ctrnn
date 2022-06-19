@@ -23,16 +23,22 @@ int maxOfAxis(int axis, Eigen::MatrixXd m){ //
 }
 
 int main(int argc, const char* argv[]){
-    //srand(20);
-    srand(time(NULL));
-    CTRNN network(3);
-    network.randomizeParameters();
-    //Eigen::MatrixXd genome = Eigen::MatrixXd::Random(3*3+6 ,1);
-    //network.setGenome(genome);
-    network.print();
+    srand(20);
+    //srand(time(NULL));
+    int size = 2;
+    CTRNN network(size);
+    Eigen::MatrixXd genome(1, size*size+size*2);// = Eigen::MatrixXd::Random(1, size*size+size*2);
+    genome<< 1.        , -0.17390272,  0.27844626,  0.66946256, -0.30683733, 0.05880393, -1.        , -0.31919337;
 
-    //a.setSize(4);
-    //cout<<a.size<<endl<<endl;
+    network.setGenome(genome);
+    network.initializeState(Eigen::MatrixXd::Zero(1,size));
+    network.EulerStep(0.1);
+
+
+
+
+//    network.recoverParameters();
+//    network.initializeState(Eigen::MatrixXd::Zero(1,size));
     return 0;
 
 }
