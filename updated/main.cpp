@@ -26,13 +26,10 @@ int main(int argc, const char* argv[]){
     //srand(20);
     srand(time(NULL));
     CTRNN network(3);
-    network.randomizeParameters();
-    cout<<network.taus.transpose()<<endl;
-    cout<<network.taus<<endl;
-    cout<<endl;
-    cout<<"Max of rows:"<<endl;
-    cout<<maxOfAxis(1, network.taus.transpose())<<endl;
-    //cout<<network.taus<<endl<<endl;
+    Eigen::MatrixXd genome = Eigen::MatrixXd::Random(3*3+6 ,1);
+    network.setGenome(genome);
+    network.print();
+
     //a.setSize(4);
     //cout<<a.size<<endl<<endl;
     return 0;

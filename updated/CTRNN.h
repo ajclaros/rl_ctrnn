@@ -33,14 +33,16 @@ class CTRNN {
         int size;
         // The constructor
         CTRNN(int size, double WR=16.0, double BR=16.0, double TR=5.0, double TA=6.0);
+        void setGenome(const Eigen::MatrixXd genome);
         void setSize(int size);
         void reset();
         void randomizeParameters();
-        void setVoltages(Eigen::MatrixXd voltages);
+        void setVoltages(const Eigen::MatrixXd voltages);
         void setTaus(Eigen::MatrixXd taus);
         void setInputs(Eigen::MatrixXd inputs);
         void setWeightCenters(Eigen::MatrixXd weightCenters);
         void initializeState(Eigen::MatrixXd v);
+        void print();
         // The destructor
         queue<double> runningaverage = queue<double>(4000, 0);
         // // Accessors

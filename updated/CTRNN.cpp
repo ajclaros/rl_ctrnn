@@ -100,3 +100,30 @@ void CTRNN::recoverParameters(){
        params(size * size + size+i,0) = (taus(i,0)-TA)/TR;
     }
 }
+
+void CTRNN::setGenome(Eigen::MatrixXd genome) {
+    if (genome.size()!=this->size*this->size+2*this->size){
+        throw "Matrix is of wrong size!";
+
+
+}
+    for(int i=0;i<this->size;i++){
+        for(int j=0; j<this->size; j++){
+            weights(i, j) = genome(i*size+j, 0)*WR;}
+        biases(i, 0) = genome(size*size+i, 0)*BR;
+        taus(i, 0) = genome(size*size+size+i,0)*TR+TA;
+}
+    weightcenters = weights;
+    biascenters = biases;
+    invTaus = taus.cwiseInverse();
+}
+
+void CTRNN::print(){
+    std::cout<<"Weights:\n"<<weights<<std::endl;
+    std::cout<<"WeightCenters:\n"<<weightcenters<<std::endl;
+    std::cout<<"Biases:\n"<<biases<<std::endl;
+    std::cout<<"BiasCenters:\n"<<biascenters<<std::endl;
+    std::cout<<"Taus:\n"<<taus<<std::endl;
+    std::cout<<"invTaus:\n"<<taus<<std::endl;
+
+}
