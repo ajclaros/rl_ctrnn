@@ -29,6 +29,7 @@ CTRNN::CTRNN(int size, double WR, double BR, double TR, double TA)
     this->TR= TR;
     this->TA= TA;
 }
+
 void CTRNN::setSize(int size){this->size = size;
 
     weights.resize(size, size);
