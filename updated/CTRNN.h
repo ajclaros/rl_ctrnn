@@ -33,6 +33,7 @@ class CTRNN {
         int size;
         // The constructor
         CTRNN(int size, double WR=16.0, double BR=16.0, double TR=5.0, double TA=6.0);
+        CTRNN();
         void setGenome(const Eigen::MatrixXd genome);
         void setSize(int size);
         void reset();

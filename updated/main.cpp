@@ -24,8 +24,14 @@ using namespace std;
 //     return val;
 // }
 double fitnessFunction(Eigen::MatrixXd &genome){
-
-
+    LeggedAgent legged(2);
+    legged.nervousSystem.setGenome(genome);
+    Eigen::VectorXd time = Eigen::VectorXd::LinSpaced(2200 , 0, 220);
+    for(int i =0; i<time.size(); i++){
+        1+1;
+        
+        
+}
     return 0.5;
 
 }
@@ -34,8 +40,14 @@ int main(int argc, const char* argv[]){
     srand(20);
     //srand(time(NULL));
     int size = 2;
-    Microbial m(100, size*size*2*size, 0.5, 0.5, 2, 20);
-    m.setFitnessFunction(fitnessFunction);
+    //Microbial m(100, size*size*2*size, 0.5, 0.5, 2, 20);
+    //
+    Eigen::MatrixXd genome(1, size*size+2*size);
+
+    genome << 0.12029618, 0.03063469, 0.07051985, 0.09383968, 0.0928963 ,
+       0.12052319, 0.        , 0.        ;
+    Eigen::VectorXd time = Eigen::VectorXd::LinSpaced(100, 0, 9.9);
+    cout<<time<<endl;
     return 0;
 
 }

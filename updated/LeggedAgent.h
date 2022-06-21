@@ -3,56 +3,23 @@
 //
 // RDB 2/16/96
 // *************************
-
 #pragma once
 #include "CTRNN.h"
 // Global constants
-
 //const double Pi = 3.1415926;
-
-
 // The Leg class declaration
-
-class TLeg {
-	public:
-		// The constructor
-		TLeg() {};
-		// The destructor
-		~TLeg() {};
-
-		// Accessors
-
-		double Angle, Omega, ForwardForce, BackwardForce;
-		double FootX, FootY, JointX, JointY;
-		double FootState;
-};
-
-
 // The LeggedAgent class declaration
-
 class LeggedAgent {
-    public:
-	// The constructor
-       	LeggedAgent(double ix = 0.0, double iy = 0.0)
-	{
-	    Reset(ix,iy, 0);
-	};
-	~LeggedAgent() {};
-		// Accessors
-	double PositionX(void) {return cx;};
-	void SetPositionX(double newx) {cx = newx;};
-	void SetLearnParams(double ampgain, double learnrate, double meanperiod, double stdperiod){NervousSystem.SetAmp(ampgain);NervousSystem.SetLearnRate(learnrate);NervousSystem.SetPeriod(meanperiod,stdperiod);};
-		// Control
-	//void Reset(double ix, double iy, int randomize);
-	void Reset(double ix, double iy, int randomize);
-	void StepCPG(double StepSize, double performance, int learning);
-	void StepRPG(double StepSize);
-	void Step2CPG(double StepSize);
-	void Step2RPG(double StepSize);
-	void Step1CPG(double StepSize);
-	void Step1RPG(double StepSize, double performance, int learning);
-	void PerfectStep(double StepSize);
-	double cx, cy, vx;
-	TLeg Leg;
-	CTRNN NervousSystem;
+	public:
+		int footState;
+		double cx, cy, vx,  angle, omega, forwardForce, backwardForce,
+			jointX, jointY, footX, footY;
+		CTRNN nervousSystem;//(double WR=16.0, double BR= 16.0, double TR=5.0, double TA = 6.0);
+		LeggedAgent(int size);
+		Eigen::MatrixXd state();
+		double getAngleFeedback();
+		void step1(double stepsize, Eigen::MatrixXd u);
+		void step2(double stepsize, Eigen::MatrixXd u);
+		void step3(double stepsize, Eigen::MatrixXd u);
+
 };

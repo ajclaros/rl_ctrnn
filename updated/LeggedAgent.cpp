@@ -6,6 +6,7 @@
 
 #include "LeggedAgent.h"
 #include <eigen3/Eigen/Dense>
+#include <cmath>
 
 // Constants
 const int    LegLength = 15;
@@ -16,417 +17,82 @@ const double MaxVelocity = 6.0;
 const double MaxTorque = 0.5;
 const double MaxOmega = 1.0;
 
-// *******
-// Control
-// *******
-
-// Reset the state of the agent
-
-void LeggedAgent::Reset(double ix, double iy, int randomize)
-{
-	cx = ix; cy = iy; vx = 0.0;
-	Leg.FootState = 0;
-	if (randomize){
-		Eigen::MatrixXd r = Eigen::MatrixXd::Random(1,1);
-		Leg.Angle = r(0,0)*(ForwardAngleLimit - BackwardAngleLimit)+BackwardAngleLimit;
+LeggedAgent::LeggedAgent(int size){
+	cx= 0.0;
+	cy = 0.0;
+	vx = 0.0;
+	footState = 0;
+	angle = ForwardAngleLimit;
+	omega = 0.0;
+	backwardForce = BackwardAngleLimit;
+	jointX = cx;
+	jointY = cy + 12.5;
+	footX = jointX + LegLength + sin(angle);
+	footY = jointY + LegLength + sin(angle);
+	nervousSystem.setSize(size);
 }
-	else Leg.Angle = ForwardAngleLimit;
-	Leg.Omega = Leg.ForwardForce = Leg.BackwardForce = 0.0;
-	Leg.JointX = cx; Leg.JointY = cy + 12.5;
-	Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-	Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	Eigen::MatrixXd r(1, 2);
-	if (randomize){
-		r = Eigen::MatrixXd::Random(1, 2)/10.0;
-		NervousSystem.setVoltages(r);
+Eigen::MatrixXd LeggedAgent::state(){
+	Eigen::MatrixXd s(1,3);
+	s << angle, omega, footState;
+	return s;
+}
+double LeggedAgent::getAngleFeedback(){
+	return angle*5.0/ForwardAngleLimit;
+}
+void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
+	double force = 0.0;
+	if(u(0,0)>0.5){
+		footState = 1;
+		omega = 0.0;
+		forwardForce = 2*(u(0,0) - 0.5) * MaxLegForce;
+		backwardForce = 0.0;
 }
 	else{
-		r = Eigen::MatrixXd::Zero(1,2);
-		NervousSystem.setVoltages(r);
+		footState = 0.0;
+		forwardForce = 0.0;
+        backwardForce = 2 * (0.5 - u(0, 0)) - MaxLegForce;
+}
+	double f = forwardForce - backwardForce;
+	if(footState == 1){
+		if((angle>=BackwardAngleLimit && angle <=ForwardAngleLimit)||
+		   (angle < BackwardAngleLimit && f<0) ||
+		   (angle>ForwardAngleLimit and f >0)){
+			force = f;
 }
 }
-
-void LeggedAgent::Reset(double ix, double iy, int randomize)
-{
-	cx = ix; cy = iy; vx = 0.0;
-	Leg.FootState = 0;
-	if (randomize){
-		Eigen::MatrixXd r = Eigen::MatrixXd::Random(1,1);
-		Leg.Angle = r(0,0);} //rs.UniformRandom(BackwardAngleLimit,ForwardAngleLimit);
-	else Leg.Angle = ForwardAngleLimit;
-	Leg.Omega = Leg.ForwardForce = Leg.BackwardForce = 0.0;
-	Leg.JointX = cx; Leg.JointY = cy + 12.5;
-	Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-	Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	if (randomize) NervousSystem.RandomizeCircuitState(-0.1,0.1,rs);
-	else NervousSystem.RandomizeCircuitState(0.0,0.0,rs);
+	vx += stepsize*force;
+	if(vx <=-MaxVelocity){vx = -MaxVelocity;}
+	if(vx >MaxVelocity){vx = MaxVelocity;}
+	cx += stepsize * vx;
+	jointX+= stepsize* vx;
+	if(footState==1){
+		double tempAngle = atan2(footX - jointX, footY - jointY);
+		omega = (tempAngle - angle)/stepsize;
+		angle = tempAngle;
 }
-
-// Step the insect using a general CTRNN CPG
-void LeggedAgent::StepCPG(double StepSize, double performance, int learning)
-{
-	double force = 0.0;
-
-	// Update the nervous system
-	if (learning == 1){
-		NervousSystem.Flux(rs);
-		NervousSystem.Learn(performance);
-  }
-	NervousSystem.EulerStep(StepSize);
-	// Update the leg effectors
-	if (NervousSystem.NeuronOutput(1) > 0.5) {Leg.FootState = 1; Leg.Omega = 0;}
-	else Leg.FootState = 0;
-	Leg.ForwardForce = NervousSystem.NeuronOutput(2) * MaxLegForce;
-	Leg.BackwardForce = NervousSystem.NeuronOutput(3) * MaxLegForce;
-	// Compute the force applied to the body
-	// *** This is a CHANGE from the original body model that allows a supporting leg that has
-	// *** passed outside of the mechanical limits to apply force in a direction that moves it
-	// *** back toward that mechanical limit but not in a direction that would move it further
-	// *** away.  In effect, the mechanical limits become 1-way constraints for a supporting leg.
-	double f = Leg.ForwardForce - Leg.BackwardForce;
-	if (Leg.FootState == 1.0)
-		if ((Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit) ||
-		    (Leg.Angle < BackwardAngleLimit && f < 0) ||
-		    (Leg.Angle > ForwardAngleLimit && f > 0))
-		force = f;
-	// *** The original code
-//		if (Leg.FootState == 1.0 && Leg.Angle >= BackwardAngleLimit &&  Leg.Angle <= ForwardAngleLimit)
-//			force = Leg.ForwardForce - Leg.BackwardForce;
-	// ***
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
+	else{
 		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * (Leg.BackwardForce - Leg.ForwardForce);
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
+		omega += stepsize*MaxTorque*(backwardForce - forwardForce);
+		if(omega < -MaxOmega){
+			omega = -MaxOmega;
+}
+		if(omega > MaxOmega){
+			omega = MaxOmega;
+}
+		angle+= angle + stepsize*omega;
+		if(angle < BackwardAngleLimit){
+			angle = BackwardAngleLimit;
+			omega = 0;
+}
+		if(angle > ForwardAngleLimit){
+			angle = ForwardAngleLimit;
+			omega = 0;
+}
+		footX = jointX + LegLength + sin(angle);
+		footY = jointY + LegLength + cos(angle);
+}
+	if(cx - footX > 20){
+		vx = 0.0;
 }
 
-
-// Step the insect using a general CTRNN RPG
-void LeggedAgent::StepRPG(double StepSize)
-{
-	double force = 0.0;
-
-	// Update the sensory input
-	NervousSystem.SetNeuronExternalInput(1,Leg.Angle * 5.0/ForwardAngleLimit);
-	NervousSystem.SetNeuronExternalInput(2,Leg.Angle * 5.0/ForwardAngleLimit);
-	NervousSystem.SetNeuronExternalInput(3,Leg.Angle * 5.0/ForwardAngleLimit);
-
-	// Update the nervous system
-	NervousSystem.EulerStep(StepSize);
-	// Update the leg effectors
-	if (NervousSystem.NeuronOutput(1) > 0.5) {Leg.FootState = 1; Leg.Omega = 0;}
-	else Leg.FootState = 0;
-	Leg.ForwardForce = NervousSystem.NeuronOutput(2) * MaxLegForce;
-	Leg.BackwardForce = NervousSystem.NeuronOutput(3) * MaxLegForce;
-	// Compute the force applied to the body
-	// *** This is a CHANGE from the original body model that allows a supporting leg that has
-	// *** passed outside of the mechanical limits to apply force in a direction that moves it
-	// *** back toward that mechanical limit but not in a direction that would move it further
-	// *** away.  In effect, the mechanical limits become 1-way constraints for a supporting leg.
-	double f = Leg.ForwardForce - Leg.BackwardForce;
-	if (Leg.FootState == 1.0)
-		if ((Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit) ||
-		    (Leg.Angle < BackwardAngleLimit && f < 0) ||
-		    (Leg.Angle > ForwardAngleLimit && f > 0))
-		force = f;
-	// *** The original code
-//		if (Leg.FootState == 1.0 && Leg.Angle >= BackwardAngleLimit &&  Leg.Angle <= ForwardAngleLimit)
-//			force = Leg.ForwardForce - Leg.BackwardForce;
-	// ***
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
-		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * (Leg.BackwardForce - Leg.ForwardForce);
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
-}
-
-// Step the LeggedAgent using a 2-neuron CTRNN CPG
-
-void LeggedAgent::Step2CPG(double StepSize)
-{
-	double force = 0.0;
-
-	// Update the nervous system
-	NervousSystem.EulerStep(StepSize);
-	// Update the leg effectors
-	if (NervousSystem.NeuronOutput(1) > 0.5) {Leg.FootState = 1; Leg.Omega = 0;}
-	else Leg.FootState = 0;
-	Leg.ForwardForce = NervousSystem.NeuronOutput(1) * MaxLegForce;
-	Leg.BackwardForce = NervousSystem.NeuronOutput(2) * MaxLegForce;
-    double f = Leg.ForwardForce - Leg.BackwardForce;
-	if (Leg.FootState == 1.0)
-		if ((Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit) ||
-		    (Leg.Angle < BackwardAngleLimit && f < 0) ||
-		    (Leg.Angle > ForwardAngleLimit && f > 0))
-		force = f;
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
-		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * (Leg.BackwardForce - Leg.ForwardForce);
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
-}
-
-// Step the LeggedAgent using a 2-neuron CTRNN CPG
-
-void LeggedAgent::Step2RPG(double StepSize)
-{
-	double force = 0.0;
-
-	// Update the sensory input
-	NervousSystem.SetNeuronExternalInput(1,Leg.Angle * 5.0/ForwardAngleLimit);
-	NervousSystem.SetNeuronExternalInput(2,Leg.Angle * 5.0/ForwardAngleLimit);
-
-	// Update the nervous system
-	NervousSystem.EulerStep(StepSize);
-	// Update the leg effectors
-	if (NervousSystem.NeuronOutput(1) > 0.5) {Leg.FootState = 1; Leg.Omega = 0;}
-	else Leg.FootState = 0;
-	Leg.ForwardForce = NervousSystem.NeuronOutput(1) * MaxLegForce;
-	Leg.BackwardForce = NervousSystem.NeuronOutput(2) * MaxLegForce;
-    double f = Leg.ForwardForce - Leg.BackwardForce;
-	if (Leg.FootState == 1.0)
-		if ((Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit) ||
-		    (Leg.Angle < BackwardAngleLimit && f < 0) ||
-		    (Leg.Angle > ForwardAngleLimit && f > 0))
-		force = f;
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
-		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * (Leg.BackwardForce - Leg.ForwardForce);
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
-}
-
-// Step the LeggedAgent using a 1-neuron CTRNN CPG
-
-void LeggedAgent::Step1CPG(double StepSize)
-{
-	double force = 0.0;
-
-	// Update the nervous system
-	NervousSystem.EulerStep(StepSize);
-	double o = NervousSystem.NeuronOutput(1);
-	// Update the leg effectors
-	if (o > 0.5) {
-		Leg.FootState = 1;
-		Leg.Omega = 0;
-		Leg.ForwardForce = 2 * (o - 0.5) * MaxLegForce;
-	}
-	else {
-		Leg.FootState = 0;
-		Leg.BackwardForce = 2 * (0.5 - o) * MaxLegForce;
-	}
-	// Compute the force applied to the body (*** USING THE "NEW" MODEL ***)
-	double f = Leg.ForwardForce - Leg.BackwardForce;
-	if (Leg.FootState == 1.0)
-		if ((Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit) ||
-		    (Leg.Angle < BackwardAngleLimit && f < 0) ||
-		    (Leg.Angle > ForwardAngleLimit && f > 0))
-		force = f;
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
-		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * (Leg.BackwardForce - Leg.ForwardForce);
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
-}
-
-
-// Step the LeggedAgent using a 1-neuron CTRNN RPG
-
-void LeggedAgent::Step1RPG(double StepSize, double performance, int learning)
-{
-	double force = 0.0;
-
-	// Update the sensory input
-	if(learning==1){
-		NervousSystem.Flux(rs);
-		NervousSystem.Learn(performance);
-	}
-	NervousSystem.SetNeuronExternalInput(1,Leg.Angle * 5.0/ForwardAngleLimit);
-	NervousSystem.SetNeuronExternalInput(2,Leg.Angle * 5.0/ForwardAngleLimit);
-
-	// Update the nervous system
-	NervousSystem.EulerStep(StepSize);
-	double o = NervousSystem.NeuronOutput(1);
-	// Update the leg effectors
-	if (o > 0.5) {
-		Leg.FootState = 1;
-		Leg.Omega = 0;
-		Leg.ForwardForce = 2 * (o - 0.5) * MaxLegForce;
-	}
-	else {
-		Leg.FootState = 0;
-		Leg.BackwardForce = 2 * (0.5 - o) * MaxLegForce;
-	}
-	// Compute the force applied to the body (*** USING THE "NEW" MODEL ***)
-	double f = Leg.ForwardForce - Leg.BackwardForce;
-	if (Leg.FootState == 1.0)
-		if ((Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit) ||
-		    (Leg.Angle < BackwardAngleLimit && f < 0) ||
-		    (Leg.Angle > ForwardAngleLimit && f > 0))
-		force = f;
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
-		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * (Leg.BackwardForce - Leg.ForwardForce);
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
-}
-
-
-// Step the LeggedAgent using the optimal pattern generator
-
-void LeggedAgent::PerfectStep(double StepSize)
-{
-	double force = 0.0;
-
-	// Update the leg effectors
-	if (Leg.FootState == 0.0 && Leg.Angle >= ForwardAngleLimit) {Leg.FootState = 1; Leg.Omega = 0;}
-	else if (Leg.FootState == 1.0 && (cx - Leg.FootX > 20)) Leg.FootState = 0;
-	// Compute the force applied to the body
-	if (Leg.FootState == 1.0 && Leg.Angle >= BackwardAngleLimit && Leg.Angle <= ForwardAngleLimit)
-		force = MaxLegForce;
-	// Update the position of the body
-	vx = vx + StepSize * force;
-	if (vx < -MaxVelocity) vx = -MaxVelocity;
-	if (vx > MaxVelocity) vx = MaxVelocity;
-	cx = cx + StepSize * vx;
-	// Update the leg geometry
-	Leg.JointX = Leg.JointX + StepSize * vx;
-	if (Leg.FootState == 1.0) {
-		double angle = atan2(Leg.FootX - Leg.JointX,Leg.FootY - Leg.JointY);
-		Leg.Omega = (angle - Leg.Angle)/StepSize;
-		Leg.Angle = angle;
-	}
-	else {
-		vx = 0.0;
-		Leg.Omega	= Leg.Omega + StepSize * MaxTorque * MaxLegForce;
-		if (Leg.Omega < -MaxOmega) Leg.Omega = -MaxOmega;
-		if (Leg.Omega > MaxOmega) Leg.Omega = MaxOmega;
-		Leg.Angle = Leg.Angle + StepSize * Leg.Omega;
-		if (Leg.Angle < BackwardAngleLimit) {Leg.Angle = BackwardAngleLimit; Leg.Omega = 0;}
-		if (Leg.Angle > ForwardAngleLimit) {Leg.Angle = ForwardAngleLimit; Leg.Omega = 0;}
-		Leg.FootX = Leg.JointX + LegLength * sin(Leg.Angle);
-		Leg.FootY = Leg.JointY + LegLength * cos(Leg.Angle);
-	}
-	// If the foot is too far back, the body becomes "unstable" and forward motion ceases
-	if (cx - Leg.FootX > 20) vx = 0.0;
 }
