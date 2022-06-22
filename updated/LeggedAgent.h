@@ -6,14 +6,12 @@
 #pragma once
 #include "CTRNN.h"
 // Global constants
-//const double Pi = 3.1415926;
 // The Leg class declaration
 // The LeggedAgent class declaration
 class LeggedAgent {
 	public:
-		int footState;
 		double cx, cy, vx,  angle, omega, forwardForce, backwardForce,
-			jointX, jointY, footX, footY;
+			jointX, jointY, footX, footY, footState;
 		CTRNN nervousSystem;//(double WR=16.0, double BR= 16.0, double TR=5.0, double TA = 6.0);
 		LeggedAgent(int size);
 		Eigen::MatrixXd state();

@@ -8,11 +8,12 @@
 #include <eigen3/Eigen/Dense>
 #include <cmath>
 
+const long double Pi =  3.141592653589793;
 // Constants
 const int    LegLength = 15;
 const double MaxLegForce = 0.05;
-const double ForwardAngleLimit = Pi/6;
-const double BackwardAngleLimit = -Pi/6;
+const double ForwardAngleLimit = Pi/6.0;
+const double BackwardAngleLimit = -Pi/6.0;
 const double MaxVelocity = 6.0;
 const double MaxTorque = 0.5;
 const double MaxOmega = 1.0;
@@ -21,10 +22,11 @@ LeggedAgent::LeggedAgent(int size){
 	cx= 0.0;
 	cy = 0.0;
 	vx = 0.0;
-	footState = 0;
+	footState = 0.0;
 	angle = ForwardAngleLimit;
 	omega = 0.0;
-	backwardForce = BackwardAngleLimit;
+	backwardForce = 0.0;
+	forwardForce= 0.0;
 	jointX = cx;
 	jointY = cy + 12.5;
 	footX = jointX + LegLength + sin(angle);
@@ -48,20 +50,22 @@ void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
 		backwardForce = 0.0;
 }
 	else{
-		footState = 0.0;
+		footState = 0;
 		forwardForce = 0.0;
-        backwardForce = 2 * (0.5 - u(0, 0)) - MaxLegForce;
+        backwardForce = 2 * (0.5 - u(0, 0)) * MaxLegForce;
 }
 	double f = forwardForce - backwardForce;
-	if(footState == 1){
+	if(footState == 1.0){
 		if((angle>=BackwardAngleLimit && angle <=ForwardAngleLimit)||
 		   (angle < BackwardAngleLimit && f<0) ||
-		   (angle>ForwardAngleLimit and f >0)){
+		   (angle >ForwardAngleLimit and f >0)){
 			force = f;
+
 }
 }
+	//std::cout<<footState<<std::endl;
 	vx += stepsize*force;
-	if(vx <=-MaxVelocity){vx = -MaxVelocity;}
+	if(vx < -MaxVelocity){vx = -MaxVelocity;}
 	if(vx >MaxVelocity){vx = MaxVelocity;}
 	cx += stepsize * vx;
 	jointX+= stepsize* vx;
@@ -75,7 +79,9 @@ void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
 		omega += stepsize*MaxTorque*(backwardForce - forwardForce);
 		if(omega < -MaxOmega){
 			omega = -MaxOmega;
+
 }
+		angle+=stepsize * omega;
 		if(omega > MaxOmega){
 			omega = MaxOmega;
 }
@@ -91,7 +97,7 @@ void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
 		footX = jointX + LegLength + sin(angle);
 		footY = jointY + LegLength + cos(angle);
 }
-	if(cx - footX > 20){
+	if(cx - footX > 20.0){
 		vx = 0.0;
 }
 

@@ -3,7 +3,7 @@
 #include "queue.h"
 #include <cmath>
 #pragma once
-const double Pi = 3.1415926;
+//const double Pi = 3.1415926;
 // The sigmoid function
 //#ifdef FAST_SIGMOID
 //const int SigTabSize = 400;
@@ -40,7 +40,7 @@ class CTRNN {
         void randomizeParameters();
         void setVoltages(const Eigen::MatrixXd voltages);
         void setTaus(Eigen::MatrixXd taus);
-        void setInputs(Eigen::MatrixXd inputs);
+        void setInputs(Eigen::MatrixXd &inputs);
         void setWeightCenters(Eigen::MatrixXd weightCenters);
         void initializeState(Eigen::MatrixXd v);
         void print();

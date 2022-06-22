@@ -46,6 +46,7 @@ void CTRNN::setSize(int size){this->size = size;
     taus.resize(1, size);
     params.resize(1, size*size+2*size);
     inputs.resize(1, size);
+    voltages.resize(1, size);
     weightcenters.resize(size, size);
     weights = Eigen::MatrixXd::Zero(size, size);
     outputs = Eigen::MatrixXd::Zero(1, size);
@@ -53,6 +54,8 @@ void CTRNN::setSize(int size){this->size = size;
     biascenters = Eigen::MatrixXd::Zero(1, size);
     taus= Eigen::MatrixXd::Zero(1, size);
     inputs = Eigen::MatrixXd::Zero(1, size);
+    voltages = Eigen::MatrixXd::Zero(1,size);
+
     weightcenters = Eigen::MatrixXd::Zero(size, size);
 }
 void CTRNN::reset(){
@@ -87,7 +90,7 @@ void CTRNN::setWeightCenters(Eigen::MatrixXd weightCenters){
     weightcenters = weightCenters;
 
 }
-void CTRNN::setInputs(Eigen::MatrixXd inputs){
+void CTRNN::setInputs(Eigen::MatrixXd &inputs){
     inputs = inputs;
 
 }
@@ -127,13 +130,17 @@ void CTRNN::setGenome(Eigen::MatrixXd genome) {
 void CTRNN::EulerStep(double stepsize){
     Eigen::MatrixXd netInput(1, size);
     netInput = Eigen::MatrixXd::Zero(1, size);
-    for(int i=0; i<size; i++){
-       netInput(0,i) = inputs(0, i) + weightcenters.transpose().row(i).cwiseProduct(outputs).sum();
-}
-    voltages += Eigen::MatrixXd::Constant(1, size, stepsize).cwiseProduct(invTaus.cwiseProduct((-voltages+ netInput)));
-    for(int i =0; i<size; i++){
-        outputs(i) = sigmoid(voltages(0,i)+biases(0, i));
-}
+    netInput = (weightcenters.transpose()*outputs.transpose()).transpose();
+    std::cout<<inputs<<std::endl;
+    std::cout<<netInput<<std::endl;
+    std::cout<<std::endl;
+
+    //voltages +=Eigen::MatrixXd::Constant(1, size, stepsize).cwiseProduct(invTaus.cwiseProduct((-voltages+ netInput)));
+//    for(int i =0; i<size; i++){
+//       outputs(0, i) = sigmoid(voltages(0,i)+biases(0, i));
+//}
+//    std::cout<<outputs<<std::endl;
+//
 }
 
 void CTRNN::print(){
