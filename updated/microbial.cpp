@@ -2,7 +2,8 @@
 #include "microbial.h"
 #include <eigen3/Eigen/Dense>
 #include "CTRNN.h"
-
+#include <random>
+#include <time.h>
 int maxOfAxis(int axis, Eigen::MatrixXd m){ //
     int val;
     if(axis==0){
@@ -27,26 +28,69 @@ Microbial::Microbial(int popSize, int geneSize, double recombProb, double mutate
     tournaments = numGenerations*popSize;
     population.resize(popSize, geneSize);
     population = Eigen::MatrixXd::Random(popSize, genesize);
-    fitness.resize(popSize, genesize);
+    fitness.resize(popSize, 1);
     fitness = Eigen::MatrixXd::Zero(popSize, 1);
     avgHistory = Eigen::MatrixXd::Zero(numGenerations, 1);
-    bestHistory = Eigen::MatrixXd::Zero(numGenerations, 1);
+    bestHistory = Eigen::MatrixXd::Zero(numGenerations, 2);
+
 }
 
 void Microbial::fitStats(){
-    int bestInd = maxOfAxis(0, population);
     bestFitness = maxOfAxis(0, fitness);
     avgFitness = fitness.mean();
     avgHistory(currentGen, 0) = avgFitness;
     bestHistory(currentGen, 0) = bestFitness;
+    std::cout<<bestFitness<<std::endl;
+    bestHistory(currentGen, 1) = fitness.maxCoeff();// fitness(bestFitness,0);
 }
 
 
-//void Microbial::run(){
-//    for(int i=0; i<popSize; i++){
-//        fitness(i) = fitnessFunction(population(i,0));
-//}
-//    for(int g=0; g<generations;g++){
-//        1+1;
-//}
-//}
+void Microbial::run(std::default_random_engine seed){
+
+    int winner, loser, a, b;
+    std::uniform_real_distribution<double> uniform(0, 1);
+    std::normal_distribution<double> normal(0, mutateProb);
+    for(int i=0; i<popSize; i++){
+        tempGenome= population.row(i);
+        fitness(i,0 ) = fitnessFunction(tempGenome);
+}
+    for(int g=0; g<numGenerations;g++){
+        std::cout<<"Generation: "<<g<<std::endl;
+        currentGen = g;
+        fitStats();
+        //Generate matrix of size = (popsize, 2), where each row are two individuals that will be compared
+        Eigen::VectorXd individuals= Eigen::VectorXd::LinSpaced(popSize, 0, popSize-1);
+        std::random_shuffle(individuals.begin(), individuals.end());
+        Eigen::MatrixXd indivMat  = individuals;
+        indivMat.resize(popSize/2,2);
+
+        for(int i=0; i<popSize/2; i++){
+            a = indivMat(i,0);
+            b = indivMat(i,1);
+            if(fitness(a,0)<fitness(b,0)){
+                winner = a;
+                loser = b;
+}
+            else{
+                winner = b;
+                loser = a;
+}
+
+            for(int l=0;l<genesize; l++){
+                if(uniform(seed)< recombProb){ population(loser, l) = population(winner, l);}
+
+}
+            for(int l=0; l<genesize; l++){
+                population(loser, l) += normal(seed);
+                if(population(loser, l)>1.0) population(loser, l) = 1.0;
+                if(population(loser, l)<-1.0) population(loser, l) = -1.0;
+
+}
+
+            tempGenome= population.row(loser);
+            fitness(loser,0) = fitnessFunction(tempGenome);
+
+}
+
+}
+}

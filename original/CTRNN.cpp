@@ -225,7 +225,7 @@ void CTRNN::EulerStep(double stepsize)
   for (int i = 1; i <= size; i++) {
     double input = externalinputs[i];
     for (int j = 1; j <= size; j++)
-      input += weights[j][i] * outputs[j];
+      input += inputs+ weights[j][i] * outputs[j];
     states[i] += stepsize * Rtaus[i] * (input - states[i]);
   }
   // Update the outputs of all neurons.

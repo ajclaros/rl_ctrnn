@@ -325,10 +325,6 @@ void LeggedAgent::Step1RPG(double StepSize, double performance, RandomState &rs,
 	double force = 0.0;
 
 	// Update the sensory input
-	if(learning==1){
-		NervousSystem.Flux(rs);
-		NervousSystem.Learn(performance);
-	}
 	NervousSystem.SetNeuronExternalInput(1,Leg.Angle * 5.0/ForwardAngleLimit);
 	NervousSystem.SetNeuronExternalInput(2,Leg.Angle * 5.0/ForwardAngleLimit);
 

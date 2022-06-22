@@ -29,8 +29,8 @@ LeggedAgent::LeggedAgent(int size){
 	forwardForce= 0.0;
 	jointX = cx;
 	jointY = cy + 12.5;
-	footX = jointX + LegLength + sin(angle);
-	footY = jointY + LegLength + sin(angle);
+	footX = jointX + LegLength * sin(angle);
+	footY = jointY + LegLength * cos(angle);
 	nervousSystem.setSize(size);
 }
 Eigen::MatrixXd LeggedAgent::state(){
@@ -60,16 +60,19 @@ void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
 		   (angle < BackwardAngleLimit && f<0) ||
 		   (angle >ForwardAngleLimit and f >0)){
 			force = f;
+			//std::cout<<angle<<std::endl;
 
 }
 }
-	//std::cout<<footState<<std::endl;
+
 	vx += stepsize*force;
+	//std::cout<<force<<std::endl;
 	if(vx < -MaxVelocity){vx = -MaxVelocity;}
 	if(vx >MaxVelocity){vx = MaxVelocity;}
 	cx += stepsize * vx;
 	jointX+= stepsize* vx;
 	if(footState==1){
+//		std::cout<<footX<<"|"<<jointX<<"|"<<footY<<"|"<<jointY<<std::endl;
 		double tempAngle = atan2(footX - jointX, footY - jointY);
 		omega = (tempAngle - angle)/stepsize;
 		angle = tempAngle;
@@ -81,11 +84,10 @@ void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
 			omega = -MaxOmega;
 
 }
-		angle+=stepsize * omega;
 		if(omega > MaxOmega){
 			omega = MaxOmega;
 }
-		angle+= angle + stepsize*omega;
+		angle+= stepsize*omega;
 		if(angle < BackwardAngleLimit){
 			angle = BackwardAngleLimit;
 			omega = 0;
@@ -94,8 +96,9 @@ void LeggedAgent::step1(double stepsize, Eigen::MatrixXd u){
 			angle = ForwardAngleLimit;
 			omega = 0;
 }
-		footX = jointX + LegLength + sin(angle);
-		footY = jointY + LegLength + cos(angle);
+		footX = jointX + LegLength * sin(angle);
+
+		footY = jointY + LegLength * cos(angle);
 }
 	if(cx - footX > 20.0){
 		vx = 0.0;
