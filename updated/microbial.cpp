@@ -46,7 +46,6 @@ void Microbial::fitStats(){
 
 
 void Microbial::run(std::default_random_engine seed){
-
     int winner, loser, a, b;
     std::uniform_real_distribution<double> uniform(0, 1);
     std::normal_distribution<double> normal(0, mutateProb);
@@ -63,7 +62,6 @@ void Microbial::run(std::default_random_engine seed){
         std::random_shuffle(individuals.begin(), individuals.end());
         Eigen::MatrixXd indivMat  = individuals;
         indivMat.resize(popSize/2,2);
-
         for(int i=0; i<popSize/2; i++){
             a = indivMat(i,0);
             b = indivMat(i,1);
@@ -75,21 +73,17 @@ void Microbial::run(std::default_random_engine seed){
                 winner = b;
                 loser = a;
 }
-
             for(int l=0;l<genesize; l++){
-                if(uniform(seed)< recombProb){ population(loser, l) = population(winner, l);}
-
+                if(uniform(seed)< recombProb){
+                   population(loser, l) = population(winner, l);}
 }
             for(int l=0; l<genesize; l++){
                 population(loser, l) += normal(seed);
                 if(population(loser, l)>1.0) population(loser, l) = 1.0;
                 if(population(loser, l)<-1.0) population(loser, l) = -1.0;
-
 }
-
             tempGenome= population.row(loser);
             fitness(loser,0) = fitnessFunction(tempGenome);
-
 }
 
 }

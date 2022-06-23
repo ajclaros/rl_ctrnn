@@ -47,7 +47,7 @@ int main(int argc, const char* argv[]){
     genome << 0.99388489,  -0.19977217,   0.80557307,  0.66176187, -0.41946752,  0.00756486, -0.72451768, -0.50670193;
     //cout<<fitnessFunction(genome);
 
-    Microbial m(10, s*s+2*s, 0.5, 0.1, 2, 20);
+    Microbial m(100, s*s+2*s, 0.5, 0.5, 2, 100);
     m.setFitnessFunction(fitnessFunction);
     double mean = 0.0;
     double stddev  = 1.0;
