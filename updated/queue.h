@@ -3,40 +3,44 @@
 
 // Define the default capacity of the queue
 // A class to represent a queue
-template<class T>
-class queue
-{
+template <class T> class queue {
      T *arr;         // array to store queue elements
     int front;      // front points to the front element in the queue (if any)
     int rear;       // rear points to the last element in the queue
     int capacity;
-
-public:
-    queue(int s);
-    queue(int, T initial);
-
-    T pop();
-    void push(T x);
-    T peek();
-    int size();
-    bool isEmpty();
-    bool isFull();
-    double avg();
-    void print();
+    public:
+        queue();
+        queue(int s);
+        queue(int s, T initial);
+        T pop();
+        void push(T x);
+        void setSize(int size, T initial);
+        T peek();
+        int size();
+        bool isEmpty();
+        bool isFull();
+        double avg();
+        void print();
 };
 
 
-template <class T>
-queue<T>::queue(int size)
-{
+template <class T> queue<T>::queue(int size){
     arr = new T[size];
     capacity = size;
     front = -1;
     rear = -1;
 }
-template <class T>
-queue<T>::queue(int s, T initial)
-{
+template <class T> queue<T>::queue(){
+    front = -1;
+    rear = -1;
+}
+template <class T> void queue<T>::setSize(int size, T initial){
+    arr = new T[size];
+    capacity = size;
+    for(int i=0; i<capacity; i++)
+    {arr[i] = initial;}
+}
+template <class T> queue<T>::queue(int s, T initial){
     arr = new T[s];
     capacity = s;
     for(int i=0; i<capacity; i++)
@@ -45,8 +49,7 @@ queue<T>::queue(int s, T initial)
     rear = -1;
 }
 // Utility function to dequeue the front element
-template <class T> T queue<T>::pop()
-{
+template <class T> T queue<T>::pop(){
     // check for queue underflow
     if (isEmpty())
     {
@@ -73,10 +76,8 @@ void queue<T>::push(T item)
 }
 
 // Utility function to return the front element of the queue
-template <class T> T queue<T>::peek()
-{
-    if (isEmpty())
-    {
+template <class T> T queue<T>::peek(){
+    if (isEmpty()){
         std::cout << "UnderFlow\nProgram Terminated\n";
         exit(EXIT_FAILURE);
     }
@@ -84,29 +85,26 @@ template <class T> T queue<T>::peek()
 }
 
 // Utility function to return the size of the queue
-template <class T> int queue<T>::size() {
+template <class T> int queue<T>::size(){
     return capacity;
 }
 
-// Utility function to check if the queue is empty or not
-template <class T> bool queue<T>::isEmpty() {
-    return (capacity==0);
-}
-template <class T> void queue<T>::print()
-{
-    for (int i=0; i<capacity; i++)
-    {
-        std::cout<<arr[(front+i)%capacity] <<" ";
-    }
-    std::cout<<std::endl;
-
-}
-template <class T> double queue<T>::avg()
-{
+template <class T> double queue<T>::avg(){
     double sum=0;
     for(int i=0; i<capacity; i++){
         sum+=arr[i];
 }
     return sum/capacity;
+}
 
+template <class T> void queue<T>::print(){
+    for (int i=0; i<capacity; i++){
+        std::cout<<arr[(front+i)%capacity] <<" ";
+    }
+    std::cout<<std::endl;
+
+}
+// Utility function to check if the queue is empty or not
+template <class T> bool queue<T>::isEmpty(){
+    return (capacity==0);
 }

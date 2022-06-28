@@ -1,25 +1,21 @@
 #include "CTRNN.h"
+#include "auxilary.h"
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <cmath>
-double sigmoid(double x){
-  return 1/(1 + exp(-x));
-}
 
+//Class uses weightcenters and
 CTRNN::CTRNN(int size, double WR, double BR, double TR, double TA)
 {
     this->size = size;
-    weights.resize(size, size);
     outputs.resize(1, size);
-    biases.resize(1, size);
+    //biases.resize(1, size);
     taus.resize(1, size);
     inputs.resize(1, size);
     weightcenters.resize(size, size);
     params.resize(1, size*size+2*size);
     params = Eigen::MatrixXd::Zero(1, size*size+2*size);
-    weights = Eigen::MatrixXd::Zero(size, size);
     outputs = Eigen::MatrixXd::Zero(1, size);
-    biases = Eigen::MatrixXd::Zero(1, size);
     taus= Eigen::MatrixXd::Zero(1, size);
     invTaus= Eigen::MatrixXd::Zero(1, size);
     inputs = Eigen::MatrixXd::Zero(1, size);
@@ -39,29 +35,25 @@ CTRNN::CTRNN()
 }
 void CTRNN::setSize(int size){this->size = size;
 
-    weights.resize(size, size);
     outputs.resize(1, size);
-    biases.resize(1, size);
+    //biases.resize(1, size);
     biascenters.resize(1, size);
     taus.resize(1, size);
     params.resize(1, size*size+2*size);
     inputs.resize(1, size);
     voltages.resize(1, size);
     weightcenters.resize(size, size);
-    weights = Eigen::MatrixXd::Zero(size, size);
     outputs = Eigen::MatrixXd::Zero(1, size);
-    biases = Eigen::MatrixXd::Zero(1, size);
+    //biases = Eigen::MatrixXd::Zero(1, size);
     biascenters = Eigen::MatrixXd::Zero(1, size);
     taus= Eigen::MatrixXd::Zero(1, size);
     inputs = Eigen::MatrixXd::Zero(1, size);
     voltages = Eigen::MatrixXd::Zero(1,size);
-
     weightcenters = Eigen::MatrixXd::Zero(size, size);
 }
 void CTRNN::reset(){
-    weights = Eigen::MatrixXd::Zero(size, size);
     outputs = Eigen::MatrixXd::Zero(1, size);
-    biases = Eigen::MatrixXd::Zero(1, size);
+    //biases = Eigen::MatrixXd::Zero(1, size);
     biascenters = Eigen::MatrixXd::Zero(1, size);
     taus= Eigen::MatrixXd::Zero(1, size);
     inputs = Eigen::MatrixXd::Zero(1, size);
@@ -70,10 +62,10 @@ void CTRNN::reset(){
 }
 
 void CTRNN::randomizeParameters(){
-    weights = Eigen::MatrixXd::Random(size, size)*WR;
-    weightcenters = weights;
-    biases= Eigen::MatrixXd::Random(1, size)*WR;
-    biascenters= biases;
+    weightcenters = Eigen::MatrixXd::Random(size, size)*WR;
+    //weightcenters = weights;
+    biascenters= Eigen::MatrixXd::Random(1, size)*WR;
+    //biascenters= biases;
     taus=Eigen::MatrixXd::Random(1, size)*TR+ Eigen::MatrixXd::Ones(1, size)*TA;
     invTaus = taus.cwiseInverse();
 
@@ -99,7 +91,7 @@ void CTRNN::initializeState(Eigen::MatrixXd v){
     voltages = v;
     invTaus = taus.cwiseInverse();
     for(int i=0; i<size;i++){
-       outputs(0, i)  = sigmoid(voltages(0, i)+biases(0, i));
+       outputs(0, i)  = sigmoid(voltages(0, i)+biascenters(0, i));
     }
 }
 void CTRNN::recoverParameters(){
@@ -118,12 +110,12 @@ void CTRNN::setGenome(Eigen::MatrixXd genome) {
 }
     for(int i=0;i<this->size;i++){
         for(int j=0; j<this->size; j++){
-            weights(i, j) = genome(0, i*size+j)*WR;}
-        biases(0, i) = genome(0, size*size+i)*BR;
+            weightcenters(i, j) = genome(0, i*size+j)*WR;}
+        biascenters(0, i) = genome(0, size*size+i)*BR;
         taus(0, i) = genome(0, size*size+size+i)*TR+TA;
 }
-    weightcenters = weights;
-    biascenters = biases;
+    weightcenters;
+    biascenters;
     invTaus = taus.cwiseInverse();
 }
 
@@ -134,15 +126,15 @@ void CTRNN::EulerStep(double stepsize){
 
     voltages +=Eigen::MatrixXd::Constant(1, size, stepsize).cwiseProduct(invTaus.cwiseProduct((-voltages+ netInput)));
     for(int i =0; i<size; i++){
-       outputs(0, i) = sigmoid(voltages(0,i)+biases(0, i));
+       outputs(0, i) = sigmoid(voltages(0,i)+biascenters(0, i));
 }
 
 }
 
 void CTRNN::print(){
-    std::cout<<"Weights:\n"<<weights<<std::endl;
+    //std::cout<<"Weights:\n"<<weights<<std::endl;
     std::cout<<"WeightCenters:\n"<<weightcenters<<std::endl;
-    std::cout<<"Biases:\n"<<biases<<std::endl;
+    //std::cout<<"Biases:\n"<<biases<<std::endl;
     std::cout<<"BiasCenters:\n"<<biascenters<<std::endl;
     std::cout<<"Taus:\n"<<taus<<std::endl;
     std::cout<<"invTaus:\n"<<invTaus<<std::endl;

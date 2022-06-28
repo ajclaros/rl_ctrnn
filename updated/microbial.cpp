@@ -4,20 +4,22 @@
 #include "CTRNN.h"
 #include <random>
 #include <time.h>
-int maxOfAxis(int axis, Eigen::MatrixXd m){ //
-    int val;
-    if(axis==0){
-        for(int i=0; i<m.rows(); i++)
-            if(m(i,0)==m.maxCoeff()) val = i;
-}
-    else{
-        for(int j=0; j<m.cols(); j++){
-            if(m(0,j)==m.maxCoeff()) val = j;
+#include "auxilary.h"
 
-}
-}
-    return val;
-}
+// int maxOfAxis(int axis, Eigen::MatrixXd m){ //
+//     int val;
+//     if(axis==0){
+//         for(int i=0; i<m.rows(); i++)
+//             if(m(i,0)==m.maxCoeff()) val = i;
+// }
+//     else{
+//         for(int j=0; j<m.cols(); j++){
+//             if(m(0,j)==m.maxCoeff()) val = j;
+
+// }
+// }
+//     return val;
+// }
 Microbial::Microbial(int popSize, int geneSize, double recombProb, double mutateProb, int demeSize, int numGenerations){
     this->popSize = popSize;
     this->genesize = geneSize;
@@ -40,7 +42,6 @@ void Microbial::fitStats(){
     avgFitness = fitness.mean();
     avgHistory(currentGen, 0) = avgFitness;
     bestHistory(currentGen, 0) = bestFitness;
-    std::cout<<bestFitness<<std::endl;
     bestHistory(currentGen, 1) = fitness.maxCoeff();// fitness(bestFitness,0);
 }
 
@@ -53,6 +54,7 @@ void Microbial::run(std::default_random_engine seed){
         tempGenome= population.row(i);
         fitness(i,0 ) = fitnessFunction(tempGenome);
 }
+    std::cout<<fitness<<std::endl;
     for(int g=0; g<numGenerations;g++){
         std::cout<<"Generation: "<<g<<std::endl;
         currentGen = g;
@@ -62,10 +64,11 @@ void Microbial::run(std::default_random_engine seed){
         std::random_shuffle(individuals.begin(), individuals.end());
         Eigen::MatrixXd indivMat  = individuals;
         indivMat.resize(popSize/2,2);
+        //std::cout<<indivMat<<std::endl;
         for(int i=0; i<popSize/2; i++){
             a = indivMat(i,0);
             b = indivMat(i,1);
-            if(fitness(a,0)<fitness(b,0)){
+            if(fitness(a,0)>fitness(b,0)){
                 winner = a;
                 loser = b;
 }
@@ -87,4 +90,5 @@ void Microbial::run(std::default_random_engine seed){
 }
 
 }
+
 }
