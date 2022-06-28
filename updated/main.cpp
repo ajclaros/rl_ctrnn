@@ -60,6 +60,7 @@ int main(int argc, const char* argv[]){
     RLCTRNN a(s, 4000, 2.75, 40.0,
               200, 400, false);
     a.randomizeParameters(seed);
+    a.calcInnerWeightsWithFlux();
     //Eigen::MatrixXd values(3,3);
     //values = Eigen::MatrixXd::Random(3,3);
     //cout<<"Values: \n"<<values<<endl;

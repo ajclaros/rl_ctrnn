@@ -2,13 +2,16 @@
 #include "CTRNN.h"
 #include <cmath>
 #include <random>
+#include <algorithm>
 #include <time.h>
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 
+const long double PI =  3.141592653589793;
+
 RLCTRNN::RLCTRNN(int size, int windowSize, double initFlux, double fluxConvRate, double maxFluxAmp,
                  int fluxPeriodMin, int fluxPeriodMax, bool gaussianMode,
-                 bool indepBiasFlux, double initBiasFlux =-1, double biasFluxConvRate=-1, double biasMaxFluxAmp, int biasFluxPeriodMin=-1, int biasFluxPeriodMax=-1){
+                 bool indepBiasFlux, double initBiasFlux =-1, double biasFluxConvRate=-1, double biasMaxFluxAmp=-1, int biasFluxPeriodMin=-1, int biasFluxPeriodMax=-1){
 
     CTRNN(size, WR=16, BR=16, TR=5, TA=6);
     weights.resize(1,size);
@@ -65,7 +68,7 @@ RLCTRNN::RLCTRNN(int size, int windowSize, double initFluxAmp, double maxFluxAmp
     innerFluxMoments = Eigen::MatrixXd::Zero(size,size);
     runningaverage.setSize(windowSize, 0);
     this->currentFlux= initFlux;
-    this->currentBiasFlux= initFlux;
+    this->biasCurrentFlux= initFlux;
     this->maxFluxAmp= maxFluxAmp;
     this->fluxPeriodMin = fluxPeriodMin;
     this->fluxPeriodMax = fluxPeriodMax;
@@ -86,10 +89,10 @@ void RLCTRNN::reset(){
 void RLCTRNN::initializeState(Eigen::MatrixXd v){
     currentFlux = initFlux;
     if(indepBiasFlux){
-        currentBiasFlux = initBiasFlux;
+        biasCurrentFlux= initBiasFlux;
 }
     else{
-        currentBiasFlux = initFlux;
+        biasCurrentFlux= initFlux;
 }
     CTRNN::initializeState(v);
 }
@@ -135,8 +138,31 @@ void RLCTRNN::randomizeParameters(std::default_random_engine seed){
 void RLCTRNN::updateWeightsandFluxWithReward(double reward){
     currentFlux -= fluxConvRate * reward;
     currentFlux = min((max(currentFlux, 0)), maxFluxAmp);
-    currentBiasFlux = min((max(currentBiasFlux, 0)), biasMaxFluxAmp);
+    biasCurrentFlux -= biasFluxConvRate * reward;
+    biasCurrentFlux= min((max(biasCurrentFlux, 0)), biasMaxFluxAmp);
     Eigen::MatrixXd innerFluxCenterDisplacements(size,size);
-    for(int i=0; i)
+    for(int i=0; i<innerFluxCenterDisplacements.rows(); i++){
+        for(int j=0; j<innerFluxCenterDisplacements.cols(); j++){
+            innerFluxCenterDisplacements(i,j) = currentFlux*sin(innerFluxMoments(i,j)/innerFluxPeriods(i,j)*2*PI);
+}
+}
+    Eigen::MatrixXd biasInnerFluxCenterDisplacements(size,size);
+    for(int j=0; j<biasInnerFluxCenterDisplacements.cols();j++ ){
+        biasInnerFluxCenterDisplacements(0, j) = biasCurrentFlux*sin(biasInnerFluxMoments(0,j)/biasInnerFluxPeriods(0,j)*2*PI);
+}
+    weights = weightcenters + innerFluxCenterDisplacements;
+    weightcenters = weightcenters + learnrate*reward*innerFluxCenterDisplacements;
+    clip(weightcenters, -WR, WR);
+    biases = biascenters + biasInnerFluxCenterDisplacements;
+    biascenters = biascenters + learnrate*reward*biasInnerFluxCenterDisplacements;
+}
 
+void RLCTRNN::calcInnerWeightsWithFlux(){
+   Eigen::MatrixXd temp(size, size);
+   for(int i=0; i<temp.rows(); i++){
+       for(int j=0; j<temp.cols(); j++){
+           temp(i,j) = weightcenters(i,j)+ currentFlux*sin(innerFluxMoments(i,j)*2*PI);
+}
+}
+   std::cout<<temp.transpose()<<std::endl;
 }
