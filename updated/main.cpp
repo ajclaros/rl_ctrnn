@@ -41,7 +41,11 @@ double fitnessFunction(Eigen::MatrixXd &genome){
 int main(int argc, const char* argv[]){
 
 
-    default_random_engine seed(time(NULL));
+
+    //srand(time(NULL)); //unseeded RNG
+    srand(10); //seeded RNG
+    default_random_engine seed;
+    //default_random_engine seed(rd());
     //
     Eigen::MatrixXd genome(1, s*s+2*s);
     //this genome should have fitness of 0.627687
@@ -61,6 +65,7 @@ int main(int argc, const char* argv[]){
               200, 400, false);
     a.randomizeParameters(seed);
     a.calcInnerWeightsWithFlux();
+
     //Eigen::MatrixXd values(3,3);
     //values = Eigen::MatrixXd::Random(3,3);
     //cout<<"Values: \n"<<values<<endl;

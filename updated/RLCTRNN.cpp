@@ -11,9 +11,7 @@ const long double PI =  3.141592653589793;
 
 RLCTRNN::RLCTRNN(int size, int windowSize, double initFlux, double fluxConvRate, double maxFluxAmp,
                  int fluxPeriodMin, int fluxPeriodMax, bool gaussianMode,
-                 bool indepBiasFlux, double initBiasFlux =-1, double biasFluxConvRate=-1, double biasMaxFluxAmp=-1, int biasFluxPeriodMin=-1, int biasFluxPeriodMax=-1){
-
-    CTRNN(size, WR=16, BR=16, TR=5, TA=6);
+                 bool indepBiasFlux, double initBiasFlux =-1, double biasFluxConvRate=-1, double biasMaxFluxAmp=-1, int biasFluxPeriodMin=-1, int biasFluxPeriodMax=-1):CTRNN(size, 16.0, 16.0, 5.0, 6.0){
     weights.resize(1,size);
     weights = weightcenters;
     biases.resize(1,size);
@@ -39,7 +37,7 @@ RLCTRNN::RLCTRNN(int size, int windowSize, double initFlux, double fluxConvRate,
     else{
         this->initBiasFlux = initFlux;
         this->biasFluxConvRate = fluxConvRate;
-        this->biasCurrentFlux =initFlux;
+        this->biasCurrentFlux = initFlux;
         this->biasFluxPeriodMin = fluxPeriodMin;
         this->biasFluxPeriodMax = fluxPeriodMax;
     }
@@ -55,8 +53,7 @@ RLCTRNN::RLCTRNN(int size, int windowSize, double initFlux, double fluxConvRate,
 }
 
 RLCTRNN::RLCTRNN(int size, int windowSize, double initFluxAmp, double maxFluxAmp,
-                 int fluxPeriodMin, int fluxPeriodMax, bool gaussianMode){
-    CTRNN(size, WR=16, BR=16, TR=5, TA=6);
+                 int fluxPeriodMin, int fluxPeriodMax, bool gaussianMode):CTRNN(size, 16.0, 16.0, 5.0, 6.0){
     weights.resize(size,size);
     weights = weightcenters;
     biases.resize(1,size);
@@ -137,9 +134,9 @@ void RLCTRNN::randomizeParameters(std::default_random_engine seed){
 }
 void RLCTRNN::updateWeightsandFluxWithReward(double reward){
     currentFlux -= fluxConvRate * reward;
-    currentFlux = min((max(currentFlux, 0)), maxFluxAmp);
+    currentFlux = std::min(std::max(currentFlux, 0.0), maxFluxAmp);
     biasCurrentFlux -= biasFluxConvRate * reward;
-    biasCurrentFlux= min((max(biasCurrentFlux, 0)), biasMaxFluxAmp);
+    biasCurrentFlux= std::min(std::max(biasCurrentFlux, 0.0), biasMaxFluxAmp);
     Eigen::MatrixXd innerFluxCenterDisplacements(size,size);
     for(int i=0; i<innerFluxCenterDisplacements.rows(); i++){
         for(int j=0; j<innerFluxCenterDisplacements.cols(); j++){
@@ -157,12 +154,66 @@ void RLCTRNN::updateWeightsandFluxWithReward(double reward){
     biascenters = biascenters + learnrate*reward*biasInnerFluxCenterDisplacements;
 }
 
-void RLCTRNN::calcInnerWeightsWithFlux(){
-   Eigen::MatrixXd temp(size, size);
-   for(int i=0; i<temp.rows(); i++){
-       for(int j=0; j<temp.cols(); j++){
-           temp(i,j) = weightcenters(i,j)+ currentFlux*sin(innerFluxMoments(i,j)*2*PI);
+Eigen::MatrixXd RLCTRNN::calcInnerWeightsWithFlux(){
+   Eigen::MatrixXd weightFlux(size, size);
+   for(int i=0; i<weightFlux.rows(); i++){
+       for(int j=0; j<weightFlux.cols(); j++){
+           weightFlux(i,j) = weightcenters(i,j)+ currentFlux*sin(innerFluxMoments(i,j)*2*PI);
 }
 }
-   std::cout<<temp.transpose()<<std::endl;
+   return weightFlux.transpose();
+}
+Eigen::MatrixXd RLCTRNN::calcBiasWithFlux(){
+    Eigen::MatrixXd biasFlux(1, size);
+    for(int j=0; j<biasFlux.cols(); j++){
+        biasFlux(0, j) = biases(0, j) + currentFlux *sin(biasInnerFluxMoments(0,j)*2*PI);
+}
+    return biasFlux.transpose();
+}
+
+void RLCTRNN::step(std::default_random_engine seed, double stepsize){
+    innerFluxMoments += dt;
+    biasInnerFluxPeriods += dt;
+    if(gaussianMode){
+        center = (fluxPeriodMax + fluxPeriodMin)/2;
+        standDev  (fluxPeriodMax - fluxPeriodMin)/4;
+        std::normal_distribution<double> normal(center, standDev);
+        for(int i=0; i<size; i++){
+            biasInnerFluxMoments(0, i) = 0;
+            biasInnerFluxPeriods(0, i) = normal(seed);
+            for(int j=0; j<size; j++){
+                if(innerFluxMoments(i,j)>innerFluxPeriods(i,j)){
+                    innerFluxMoments(i,j) = 0;
+                    innerFluxPeriods(i,j) = normal(seed);
+}
+}
+}
+        clip(innerFluxPeriods, fluxPeriodMin, fluxPeriodMax);
+        clip(biasInnerFluxPeriods, biasFluxPeriodMin, biasFluxPeriodMax);
+}
+    else{
+        center  = (fluxPeriodMax + fluxPeriodMin)/2;
+        standDev = (fluxPeriodMax - fluxPeriodMin)/4;
+        std::uniform_real_distribution<double> uniform(center, standDev);
+        for(int i=0; i<size; i++){
+            biasInnerFluxMoments(0,i) = 0;
+            biasInnerFluxPeriods(0,i) = uniform(seed);
+            for(int j=0; j<size; j++){
+                if(innerFluxMoments(i,j)>innerFluxPeriods(i,j)){
+                    innerFluxMoments(i,j) = 0;
+                    innerFluxPeriods(i,j) = uniform(seed);
+}
+}
+}
+}
+    roundnPlacesMatrix(innerFluxPeriods, 3);
+    roundnPlacesMatrix(biasInnerFluxPeriods, 3);
+    Eigen::MatrixXd netInput(1, size);
+    netInput += inputs + (calcInnerWeightsWithFlux()*outputs.transpose()).transpose();
+    voltages += Eigen::MatrixXd::Constant(1, size, stepsize).cwiseProduct(invTaus.cwiseProduct(-voltages+netInput));
+    Eigen::MatrixXd sigmoidInput(1, size);
+    sigmoidInput = voltages + calcBiasWithFlux();
+    for(int j=0; j<size; j++){
+        outputs(0,j) = sigmoid(sigmoidInput(0,j));
+}
 }
