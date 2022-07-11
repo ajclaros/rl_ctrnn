@@ -12,7 +12,18 @@ using namespace std;
 double duration = 100.0;
 int s = 2;
 double stepsize = 0.1;
+int windowsize = 4000;
+Eigen::VectorXd distanceHist(duration*10);
 
+double rewardFunction(double distance, int learning){
+    double performance = performanceFunction(distance)
+
+
+}
+double performanceFunction(double currentDistance){
+    double reward
+
+}
 
 double fitnessFunction(Eigen::MatrixXd &genome){
 
@@ -38,6 +49,34 @@ double fitnessFunction(Eigen::MatrixXd &genome){
     return legged.cx/duration;
 }
 
+void learning(std::default_random_engine seed){
+    Eigen::VectorXd time = Eigen::VectorXd::LinSpaced(duration*10, 0, duration-0.1);
+    Eigen::VectorXd distance(time.size());
+    //RLCTRNN ns(s, 4000, 2.75, 40.0,
+    //          200, 400, false);
+    LeggedAgent body(s);
+
+    Eigen::MatrixXd input(1, s);
+
+    RLCTRNN ns(s, 4000, 2.75, 40.0,
+              200, 400, false);
+    ns.randomizeParameters(seed);
+    cout<<"WEIGHTCENTERS"<<endl;
+    cout<<ns.weightcenters<<endl;
+
+    for(int i=0; i<s; i++){input(0,i) = body.getAngleFeedback();}
+    for(int i=0; i<duration*10; i++){
+        ns.setInputs(input);
+        ns.step(seed, stepsize);
+        body.step1(stepsize, ns.outputs);
+        if(i<windowsize){
+            double reward = ns.reward
+
+
+}
+}
+}
+
 int main(int argc, const char* argv[]){
 
 
@@ -61,10 +100,7 @@ int main(int argc, const char* argv[]){
     double mutateProb = 0.01;
     int demesize = 2;
     int numgenerations = 100;
-    RLCTRNN a(s, 4000, 2.75, 40.0,
-              200, 400, false);
-    a.randomizeParameters(seed);
-    a.calcInnerWeightsWithFlux();
+    learning(seed);
 
     //Eigen::MatrixXd values(3,3);
     //values = Eigen::MatrixXd::Random(3,3);

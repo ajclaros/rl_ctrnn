@@ -20,6 +20,8 @@ CTRNN::CTRNN(int size, double WR, double BR, double TR, double TA)
     invTaus= Eigen::MatrixXd::Zero(1, size);
     inputs = Eigen::MatrixXd::Zero(1, size);
     weightcenters = Eigen::MatrixXd::Zero(size, size);
+    voltages.resize(1, size);
+    voltages = Eigen::MatrixXd::Zero(1,size);
     this->WR = WR;
     this->BR= WR;
     this->TR= TR;

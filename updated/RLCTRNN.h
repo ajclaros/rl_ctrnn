@@ -29,7 +29,10 @@ class RLCTRNN:public CTRNN{
     void randomizeParameters(std::default_random_engine seed);
     void setLearnRate(double value){learnrate = value;}
     void updateWeightsandFluxWithReward(double reward);
+   // Eigen::VectorXd distance;
     Eigen::MatrixXd calcInnerWeightsWithFlux();
     Eigen::MatrixXd calcBiasWithFlux();
     void step(std::default_random_engine, double stepsize);
+    void performanceFunction();
+    void rewardFunction();
 };
